@@ -1,0 +1,33 @@
+万乡河流域 承灾体暴露性统计——数据来源与统计口径说明
+生成日期: 2026-11-12 | 工具链: ArcGIS 10.8 arcpy + Python 3.11 (rasterio/fiona/jenkspy/matplotlib)
+
+一、危险性分区(阶段4)
+1. H = Σwi×Ri, 权重为定稿AHP权重(洪涝CR=0.0112/泥石流CR=0.0145), 全精度值见AHP原始权重计算_全精度_20261109.xlsx。
+2. 分区方法=Jenks自然断点5级(jenkspy精确计算)。
+   洪涝断点: 1.1247 | 1.7210 | 2.4405 | 3.2046 | 3.9904 | 4.8753
+   泥石流断点: 1.3814 | 2.2221 | 2.5865 | 2.9455 | 3.3356 | 4.4415
+3. 洪涝有效像元69726(HAND缺失124像元按锁定口径保留NoData→输出NoData, 未评价人口596.8人单独记录);
+   泥石流有效像元69850。
+   注意: 原cls_f04_hand.tif曾将124个HAND缺失像元错误填充为5级, 本次已修正为255并同步全部副本(2026-11-12)。
+4. 常量降雨85.2mm方案A/B的分区结果完全相同, 本成果不受方案A/B选择影响。
+
+二、承灾体口径
+1. 人口: GHS-POP E2020(R2023A, doi:10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE)重采样100m栅格, 像元=人。
+   分区统计用ZonalStatisticsAsTable(SUM/DATA), 直接求和不乘像元面积。
+   流域栅格求和132,115人(重采样口径); 权威引用值132,047人(GHS-POP原生格网口径)。
+2. 建筑: OSM 78个建筑轮廓(院落级/复合轮廓, 勿称"78栋建筑")。
+   暴露面积=与分区面Intersect后按GRIDCODE分级的实际面积(EXP_AREA, m²), 跨级轮廓按面积拆分;
+   轮廓数量=质心归属(FeatureToPoint INSIDE→SpatialJoin), 每轮廓仅计1次, 不用碎片数。
+3. 居民点: DLG(星图杯1:25万)5处(乡镇3+行政村2)。OSM村庄点流域内26处为补充口径, 未入主表。
+4. 学校: OSM流域内8所(F_TYPE=学校且INSIDE=Y, 含全州二中高中部node点; 机关二幼儿园在流域外未计)。
+5. 桥梁: DLG 8座。道路: DLG标准27条, 长度=Intersect分段后EXP_LEN按级合计(km)。
+6. 医疗设施: DLG与OSM均未发现, 未纳入统计(现有数据未发现≠不存在)。
+
+三、工具与参数(复现)
+ZonalStatisticsAsTable(分区=Value, 值=人口, SUM, DATA) / RasterToPolygon(NO_SIMPLIFY, Field=Value) /
+Intersect(ALL) + CalculateField(!shape.area@squaremeters! / !shape.length@kilometers!) /
+SpatialJoin(JOIN_ONE_TO_ONE, KEEP_ALL, INTERSECT) / Statistics(SUM, case=GRIDCODE)。
+矢量承灾体均已按流域掩膜口径准备(EPSG:32649); 分区面由分区栅格转换, NoData区不生成面。
+
+四、文件清单
+05_最终成果: 两张统计xlsx、暴露性空间叠加结果.gdb(8个要素类)、2张PNG分布图、本说明。
